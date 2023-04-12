@@ -1,3 +1,5 @@
+from selenium.common.exceptions import TimeoutException
+
 from .objects import Scraper
 from . import constants as c
 from selenium.webdriver.common.by import By
@@ -38,13 +40,26 @@ class Job(Scraper):
             self.scrape(close_on_complete)
 
     def __repr__(self):
-        return f"{self.job_title} {self.company}"
+        return f"<Job {self.job_title} {self.company}>"
 
     def scrape(self, close_on_complete=True):
         if self.is_signed_in():
             self.scrape_logged_in(close_on_complete=close_on_complete)
         else:
             raise NotImplemented("This part is not implemented yet")
+
+    def to_dict(self):
+        return {
+            "linkedin_url": self.linkedin_url,
+            "job_title": self.job_title,
+            "company": self.company,
+            "company_linkedin_url": self.company_linkedin_url,
+            "location": self.location,
+            "posted_date": self.posted_date,
+            "applicant_count": self.applicant_count,
+            "job_description": self.job_description,
+            "benefits": self.benefits
+        }
 
 
     def scrape_logged_in(self, close_on_complete=True):
@@ -57,9 +72,19 @@ class Job(Scraper):
         self.company_linkedin_url = self.wait_for_element_to_load(name="jobs-unified-top-card__company-name").find_element_by_tag_name("a").get_attribute("href")
         self.location = self.wait_for_element_to_load(name="jobs-unified-top-card__bullet").text.strip()
         self.posted_date = self.wait_for_element_to_load(name="jobs-unified-top-card__posted-date").text.strip()
-        self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
-        self.job_description = self.wait_for_element_to_load(name="jobs-description").text.strip()
-        self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()
+        try:
+            self.applicant_count = self.wait_for_element_to_load(name="jobs-unified-top-card__applicant-count").text.strip()
+        except TimeoutException:
+            self.applicant_count = 0
+        job_description_elem = self.wait_for_element_to_load(name="jobs-description")
+        self.mouse_click(job_description_elem.find_element_by_tag_name("button"))
+        job_description_elem = self.wait_for_element_to_load(name="jobs-description")
+        job_description_elem.find_element_by_tag_name("button").click()
+        self.job_description = job_description_elem.text.strip()
+        try:
+            self.benefits = self.wait_for_element_to_load(name="jobs-unified-description__salary-main-rail-card").text.strip()
+        except TimeoutException:
+            self.benefits = None
 
         if close_on_complete:
             driver.close()

@@ -5,6 +5,7 @@ from selenium.webdriver import Chrome
 
 from . import constants as c
 
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -72,6 +73,10 @@ class Scraper:
         self.driver.execute_script('alert("Focus window")')
         self.driver.switch_to.alert.accept()
 
+    def mouse_click(self, elem):
+        action = webdriver.ActionChains(self.driver)
+        action.move_to_element(elem).perform()
+
     def wait_for_element_to_load(self, by=By.CLASS_NAME, name="pv-top-card", base=None):
         base = base or self.driver
         return WebDriverWait(base, self.WAIT_FOR_ELEMENT_TIMEOUT).until(
@@ -129,7 +134,7 @@ class Scraper:
 
     def __find_element_by_class_name__(self, class_name):
         try:
-            self.driver.find_element_by_class_name(class_name)
+            self.driver.find_element(By.CLASS_NAME, class_name)
             return True
         except:
             pass
